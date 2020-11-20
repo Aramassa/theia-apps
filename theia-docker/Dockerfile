@@ -18,19 +18,24 @@ RUN yarn --pure-lockfile && \
 
 FROM node:${NODE_VERSION}-alpine
 # See : https://github.com/theia-ide/theia-apps/issues/34
-RUN addgroup theia && \
-    adduser -G theia -s /bin/sh -D theia;
+RUN apk add --no-cache shadow
+RUN usermod --uid 1001 node && \
+    groupmod -g 1001 node && \
+    addgroup -g 1000 ubuntu && \
+    addgroup -g 998 docker && \
+    adduser --uid 1000 -G ubuntu -s /bin/sh -D ubuntu && \
+    usermod -aG docker ubuntu
 RUN chmod g+rw /home && \
-    mkdir -p /home/project && \
-    chown -R theia:theia /home/theia && \
-    chown -R theia:theia /home/project;
+    mkdir -p /home/project /home/theia && \
+    chown -R ubuntu:ubuntu /home/theia && \
+    chown -R ubuntu:ubuntu /home/project;
 RUN apk add --no-cache git openssh bash git-crypt docker docker-compose
 ENV HOME /home/theia
 WORKDIR /home/theia
-COPY --from=0 --chown=theia:theia /home/theia /home/theia
+COPY --from=0 --chown=ubuntu:ubuntu /home/theia /home/theia
 EXPOSE 3000
 ENV SHELL=/bin/bash \
     THEIA_DEFAULT_PLUGINS=local-dir:/home/theia/plugins
 ENV USE_LOCAL_GIT true
-USER theia
+USER ubuntu
 ENTRYPOINT [ "node", "/home/theia/src-gen/backend/main.js", "/home/project", "--hostname=0.0.0.0" ]
